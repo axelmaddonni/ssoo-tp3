@@ -43,10 +43,13 @@ void cliente(int mi_serv_rank, t_params params)
         computar(params.mseg_computo_previo);
 
         debug("\t¡Necesito mutex!");
+        //fprintf(stderr, "SOY %d PIDO MUTEX\n", mi_serv_rank/2);
         MPI_Send(NULL, 0, MPI_INT, mi_serv_rank, TAG_PEDIDO, COMM_WORLD);
 
         //debug("\tEsperando respuesta de mi servidor");
         MPI_Recv(NULL, 0, MPI_INT, mi_serv_rank, TAG_OTORGADO, COMM_WORLD, &status);
+
+        //fprintf(stderr, "SOY %d ME FUE OTORGADO\n", mi_serv_rank/2);
 
         debug("\tEntrando en sección crítica");
         for(i = 0; i < cant_ops; ++i) {
@@ -209,7 +212,7 @@ int main(int argc, char *argv[])
         }
 
         /* Por lo demás los servidores están listos para trabajar. */
-        servidor(mi_rank + 1);
+        servidor(mi_rank + 1, cant_ranks / 2);
 
     } else {
         assert(mi_rol == ROL_CLIENTE);
