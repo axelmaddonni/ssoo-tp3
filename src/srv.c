@@ -134,20 +134,18 @@ void servidor(int mi_cliente, int n)
             servers_vivos[server] = false;
             cant_servers_vivos--;
 
-            if(respondieron[server] == false){
+            if(hay_pedido_local && respondieron[server] == false){
                 outstanding_reply_count--;
                 respondieron[server] = true;
+                fprintf(stderr, "ASDASDASDASDFASF %d\n", outstanding_reply_count);
+                
+                if (outstanding_reply_count == 0){
+                    debug("Dándole permiso (frutesco por ahora?)");
+                    DD("Soy %d, otorgo recurso... ME VOY\n", me);
+                    MPI_Send(NULL, 0, MPI_INT, mi_cliente, TAG_OTORGADO, COMM_WORLD);
+                }
+
             }
-/*
-            if (hay_pedido_local &&  outstanding_reply_count == 0){
-                debug("Dándole permiso (frutesco por ahora?)");
-
-                DD("Soy %d, otorgo recurso... ME VOY\n", me);
-
-                MPI_Send(NULL, 0, MPI_INT, mi_cliente, TAG_OTORGADO, COMM_WORLD);
-            }
-
-*/
 
             if (chau_lista[server] == false){
                 se_despidieron--;
