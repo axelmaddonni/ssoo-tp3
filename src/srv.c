@@ -1,9 +1,10 @@
 #include "srv.h"
 
 /* Cuando un server muere:
- * Enviamos un mensaje a todos los servidores con tag TAG_MEVOY, y esperamos a que todos contesten
- * con un TAG_CHAU. En el interim, seguimos contestando todos los REQUESTs y MEVOYs entrantes, hasta
- * que todos nos contesten. Cuando todos los servers nos contestaron, nos salimos del loop y 
+ * Enviamos un mensaje a todos los servidores con tag TAG_MEVOY, y esperamos a
+ * que todos contesten con un TAG_CHAU. En el interim, seguimos contestando 
+ * todos los REQUESTs y MEVOYs entrantes, hasta que todos nos contesten. 
+ * Cuando todos los servers nos contestaron, nos salimos del loop y 
  * terminamos la ejecucion.
  */
 
@@ -20,9 +21,10 @@ void servidor(int mi_cliente, int n)
 
 
     // Estas son las mismas variables que las del paper.
-    // se_despidieron es la cantidad de servidores que respondieron CHAU luego de me_voy
-    // respondieron[] es la lista de servidores, y si el servidor iesimo mando un REPLY,
-    //        respondieron[i] == true
+    // se_despidieron es la cantidad de servidores que respondieron CHAU luego
+    //                de MEVOY
+    // respondieron[] es la lista de servidores, y si el servidor iesimo mando
+    //                un REPLY, respondieron[i] == true
     // chau_lista[] es lo mismo que respondieron, pero para CHAU
     // servers_vivos[] es un arreglo que indica si cada server murio o no
     unsigned int our_sequence_number, highest_sequence_number = 0;
@@ -56,21 +58,23 @@ void servidor(int mi_cliente, int n)
             
             
             for(int i = 0; i < n; i++){
-                // los servidores muertos ya respondieron (REPLY), y los vivos todavia no
+                // los servidores muertos ya respondieron (REPLY), y los vivos
+                // todavia no
                 respondieron[i] = !servers_vivos[i];
             }
             // self no tiene que responderse
             respondieron[me] = true;
 
             // la cantidad de servidores que deben responder son los vivos - 1 
-            // (porque self no tiene que responderse). cantidad de posiciones en false de respondieron
+            // (porque self no tiene que responderse). cantidad de posiciones en 
+            // false de respondieron
             outstanding_reply_count = cant_servers_vivos - 1;
 
             DD("Soy %d, me llego un pedido -> %d\n", me, outstanding_reply_count);
 
             if (outstanding_reply_count == 0){
-                // si estoy en 0, significa que soy el unico server vivo, entonces el recurso
-                // es nuestro. 
+                // si estoy en 0, significa que soy el unico server vivo,
+                // entonces el recurso es nuestro. 
                 debug("Dándole permiso (frutesco por ahora?)");
                 DD("Soy %d, otorgo recurso... PEDIDO\n", me);
                 MPI_Send(NULL, 0, MPI_INT, mi_cliente, TAG_OTORGADO, COMM_WORLD);
@@ -89,8 +93,8 @@ void servidor(int mi_cliente, int n)
 
         else if (tag == TAG_REQUEST) {
             // Esto está copiado del paper.
-            // De nuevo, 2*me porque el server es el numero par que corresponde a ese nodo
-            // origen/2  por la misma razon
+            // De nuevo, 2*me porque el server es el numero par que corresponde 
+            // a ese nodo. origen/2  por la misma razon
             bool defer_it;
             highest_sequence_number = MAX(highest_sequence_number, k);
             defer_it = hay_pedido_local
@@ -106,8 +110,8 @@ void servidor(int mi_cliente, int n)
         }
 
         else if (tag == TAG_REPLY) {
-            // si todavia no respondio (puede haber muerto), lo marco como respondido y
-            // disminuyo la cantidad de gente que estoy esperando
+            // si todavia no respondio (puede haber muerto), lo marco como 
+            // respondido y disminuyo la cantidad de gente que estoy esperando
             if (respondieron[origen/2] == false){
                 outstanding_reply_count--;
                 respondieron[origen/2] = true;
@@ -125,7 +129,8 @@ void servidor(int mi_cliente, int n)
         }
 
         else if (tag == TAG_LIBERO) {
-            // Esto es lo mismo que en el paper, envio reply a todos los que habia diferido
+            // Esto es lo mismo que en el paper, envio reply a todos los que 
+            // habia diferido
             DD("Soy %d, libero el recurso\n", me);
             assert(origen == mi_cliente);
             debug("Mi cliente libera su acceso exclusivo");
@@ -143,16 +148,18 @@ void servidor(int mi_cliente, int n)
 
 
         else if (tag == TAG_MEVOY) {
-            // si estoy aca, me llego la notificacion de que un server se esta cerrando
-            // lo marco como muerto, y disminuyo la cantidad de servidores vivos
+            // si estoy aca, me llego la notificacion de que un server 
+            // se esta cerrando lo marco como muerto, y disminuyo la 
+            // cantidad de servidores vivos
             DD("\nSoy %d, me entere que %d murio \n", me, origen/2);
             int server = origen/2;
             servers_vivos[server] = false;
             cant_servers_vivos--;
 
-            // si estoy pidiendo el recurso, y el server que se está despidiendo todavia no me hizo
-            // un reply al pedido, lo marco como que respondio y bajo el reply count.
-            // si llego a 0, otorgo el recurso al cliente.
+            // si estoy pidiendo el recurso, y el server que se está despidiendo
+            // todavia no me hizo un reply al pedido, lo marco como que 
+            // respondio y bajo el reply count. Si llego a 0, otorgo el recurso 
+            // al cliente.
             // Esta solucion es la que sugiere el paper.
             if(hay_pedido_local && respondieron[server] == false){
                 outstanding_reply_count--;
@@ -167,14 +174,15 @@ void servidor(int mi_cliente, int n)
             }
 
             // hago lo mismo si me estoy despidiendo, y esperando un CHAU
-            // si estoy esperando un CHAU de ese server, marco como que me llego, y disminuyo
-            // la cantidad que me falta esperar
+            // si estoy esperando un CHAU de ese server, marco como que me 
+            // llego, y disminuyo la cantidad que me falta esperar
             if (chau_lista[server] == false){
                 se_despidieron--;
                 chau_lista[server] = true;
             }
 
-            // si llega a 0, listo, no tengo que esperar a nadie mas y puedo salir
+            // si llega a 0, listo, no tengo que esperar a nadie mas y 
+            // puedo salir
             if(se_despidieron == 0)
                 listo_para_salir = true;
 
@@ -183,8 +191,9 @@ void servidor(int mi_cliente, int n)
         }
 
         else if (tag == TAG_CHAU) {
-            // si me llega un chau, marco que me llego uno de ese servidor (en caso de 
-            // que no lo haya marcado ya, por ejemplo si el server murio) 
+            // si me llega un chau, marco que me llego uno de ese servidor (en
+            // caso de que no lo haya marcado ya, por ejemplo si el server 
+            // murio) 
             int server = origen/2;
             if(chau_lista[server] == false){
                 se_despidieron--;
@@ -202,7 +211,8 @@ void servidor(int mi_cliente, int n)
             debug("Mi cliente avisa que terminó");
 
             // me marco como server muerto
-            // tengo que esperar cant_servers_vivos - 1 (todos los vivos menos yo) cantidad de CHAUs
+            // tengo que esperar cant_servers_vivos - 1 
+            // (todos los vivos menos yo) cantidad de CHAUs
             servers_vivos[me] = false;
             se_despidieron = cant_servers_vivos - 1;
 
